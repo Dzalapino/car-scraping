@@ -1,0 +1,19 @@
+[tool.poetry]
+name = "car-scraping"
+version = "0.1.0"
+description = "Web scraping project that gather's car auction's data from otomoto.pl and helps to analyse it"
+authors = ["Kuba Podkomórka <jpodkomorka19@gmail.com>"]
+readme = "README.md"
+
+[tool.poetry.scripts]
+app = 'main:main'
+
+[tool.poetry.dependencies]
+python = ">=3.11"
+beautifulsoup4 = "^4.12.2"
+requests = "^2.31.0"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
