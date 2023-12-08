@@ -12,6 +12,8 @@ app = 'main:main'
 python = ">=3.11"
 beautifulsoup4 = "^4.12.2"
 requests = "^2.31.0"
+sqlalchemy = "^2.0.23"
+unidecode = "^1.3.7"
 
 
 [build-system]

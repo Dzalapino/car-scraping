@@ -1,10 +1,13 @@
-import math
 import random
 import time
 import requests
 from bs4 import BeautifulSoup
 from math import ceil
+from unidecode import unidecode
 from car_scraping.car import Car
+import repository.car_repository as car_repo
+import repository.total_cars_repository as total_cars_repo
+
 
 URL = 'https://www.otomoto.pl/osobowe'
 NEW = 'nowe'
@@ -48,9 +51,35 @@ def get_page_url(base_url, status, car_brand=None, page=None) -> str:
             return f'{base_url}/{status}'
 
 
-def extract_numbers(string) -> int:  # Remove all characters except digits
+def extract_numbers(string: str) -> int:  # Remove all characters except digits
     numbers = ''.join(filter(str.isdigit, string))
     return int(numbers) if numbers else None
+
+
+def get_brand_from_full_name(full_name: str) -> str:
+    """
+    
+    :param full_name: 
+    :return: 
+    """
+    brand = unidecode(full_name.split(' ')[0].lower())
+    return format_brand(brand)
+
+
+def format_brand(brand: str) -> str:
+    """
+
+    :param brand:
+    :return:
+    """
+    mapping = {
+        'alfa': 'alfa-romeo',
+        'aston': 'aston-martin',
+        'land': 'land-rover',
+        'warszawa': 'marka_warszawa',
+        'rolls': 'rolls-royce'
+    }
+    return mapping.get(brand, brand)
 
 
 def total_used_new(car_brand=None) -> tuple[int, int]:  # Get the total number of used and new cars
@@ -66,8 +95,7 @@ def total_used_new(car_brand=None) -> tuple[int, int]:  # Get the total number o
         return 0, 0
 
 
-def scrape_n_pages(n_pages: int, car_brand=None, from_page=1,
-                   min_sleep=4., max_sleep=7., print_steps=True) -> list[Car]:
+def scrape_n_pages(n_pages: int, car_brand=None, from_page=1, min_sleep=4., max_sleep=7., print_steps=True) -> None:
     """
     Main scraping method. It will iterate through pages and scrape cars info
     :param n_pages: Number of pages to scrape
@@ -76,80 +104,78 @@ def scrape_n_pages(n_pages: int, car_brand=None, from_page=1,
     :param min_sleep: Minimum time delay after request
     :param max_sleep: Maximum time delay after request
     :param print_steps: Should method print the steps it's taking
-    :return: list of cars
     """
-    cars = []
+    brands = set()
 
     n_used, n_new = total_used_new(car_brand)  # Get the total number of used and new cars
     used_ratio = n_used/(n_used+n_new)  # Calculate the ratio of used cars
     n_pages_used = ceil(used_ratio * n_pages)  # Get the number of pages for the used cars based on the ratio
     n_pages_new = n_pages - n_pages_used  # Get the number of pages for new cars
+    # TODO: Update general total number of cars used and new
     
-    # Iterate through n pages
-    for i in range(from_page, from_page + n_pages_used):
+    if print_steps:
+        print(f'Scraping used cars...')
+    for i in range(from_page, from_page + n_pages_used):  # Iterate through n used pages
         if print_steps:
             print(f'Scraping page {i}')
 
         # Rotate between different User-Agents to mimic different browsers or devices
         headers['User-Agent'] = random.choice(USER_AGENTS)
 
-        # Used cars
-        page_used = get_page_url(URL, USED, car_brand, i)
-        cars_to_add = scrape_cars_from_page(page_used, USED)
-        if cars_to_add:
-            cars.extend(cars_to_add)  # Append cars from the page
+        page_used = get_page_url(URL, USED, car_brand, i)  # Get url for used cars on page i
+        # TODO: Add brands to update
+        scrape_cars_from_page(page_used, USED)  # Scrape used cars with given url
 
         if print_steps:
             print('Delay after used cars...')
         time.sleep(random.uniform(min_sleep, max_sleep))  # Wait some time delay to mimic human behavior
 
-    for i in range(from_page, from_page + n_pages_new):
-        # Rotate between different User-Agents to mimic different browsers or devices
-        headers['User-Agent'] = random.choice(USER_AGENTS)
+    if print_steps:
+        print(f'Scraping new cars...')
+    for i in range(from_page, from_page + n_pages_new):  # Iterate through n new pages
+        if print_steps:
+            print(f'Scraping page {i}')
 
-        # New cars
-        page_new = get_page_url(URL, NEW, car_brand, i)
-        cars_to_add = scrape_cars_from_page(page_new, NEW)
-        if cars_to_add:
-            cars.extend(cars_to_add)  # Append
+        headers['User-Agent'] = random.choice(USER_AGENTS)  # Change user agents
+
+        page_new = get_page_url(URL, NEW, car_brand, i)  # Get url for new cars
+        # TODO: Add brands to update
+        scrape_cars_from_page(page_new, NEW)  # Scrape new cars
 
         if print_steps:
             print('Delay after new cars...')
         time.sleep(random.uniform(min_sleep, max_sleep))  # Wait
 
-    return cars
+    # TODO: Update brands data for total used and new cars
 
 
-def scrape_cars_from_page(page: str, status=None) -> list[Car]:
+def scrape_cars_from_page(page: str, status=None) -> set[str]:
     """
     Method sends request to the page to scrape, then creates beautiful soup object to work with
     :param page: url of page to scrape
     :param status: used or new
-    :return: list of cars
     """
     try:
         response = requests.get(page, headers).text
         soup = BeautifulSoup(response, 'html.parser')
-        return extract_cars(soup, status)
+        return save_cars(soup, status)
     except Exception as e:
         print(f'Encountered problem on the page {page}, error message: {e}')
-        return []
+        return set()
 
 
-def extract_cars(soup: BeautifulSoup, status=None) -> list[Car]:
+def save_cars(soup: BeautifulSoup, status=None) -> set[str]:
     """
-    Actual cars scrapping with BeautifulSoup object.
+    Actual cars scrapping and saving in database with BeautifulSoup object.
     :param soup: BeautifulSoup object from response
     :param status: used or new
-    :return: list of scraped cars
     """
     # Get the html elements representing single car offers
     search_results = soup.find('div', class_='ooa-1hab6wx er8sc6m9')
     car_articles = search_results.find_all('article', class_='ooa-1t80gpj ev7e6t818')
-    cars = []
+    brands = set()
     try:
-        # Iterate through car offers elements
-        for car_article in car_articles:
+        for car_article in car_articles:  # Iterate through car offers elements
             # Get the particular html elements representing needed car properties
             url_element = car_article.find('a', href=True)
             full_name_element = car_article.find('h1')
@@ -159,11 +185,10 @@ def extract_cars(soup: BeautifulSoup, status=None) -> list[Car]:
             gearbox_element = list_element.find('dd', {'data-parameter': 'gearbox'})
             year_element = list_element.find('dd', {'data-parameter': 'year'})
             price_element = car_article.find('h3', class_='ev7e6t82 ooa-bz4efo er34gjf0')
-
-            cars.append(
-                Car(
+            car_to_add = Car(
                     link=url_element['href'] if url_element is not None else None,
                     full_name=full_name_element.get_text(strip=True) if full_name_element else None,
+                    url_brand='',
                     mileage=int(mileage_element.get_text(strip=True).replace(" ", "")
                                 .removesuffix('km')) if mileage_element else None,
                     fuel_type=fuel_type_element.get_text(strip=True) if fuel_type_element else None,
@@ -172,9 +197,11 @@ def extract_cars(soup: BeautifulSoup, status=None) -> list[Car]:
                     status=status,
                     price_pln=int(price_element.get_text(strip=True).replace(" ", "")) if price_element else None
                 )
-            )
+            car_to_add.url_brand = get_brand_from_full_name(car_to_add.full_name)
+            brands.add(car_to_add.url_brand)
+            car_repo.add_car_if_not_exists(car_to_add)
     except Exception as e:
         print(f'Encountered problem while extracting cars data, error message: {e}')
-        return []
+        return set()
 
-    return cars
+    return brands
