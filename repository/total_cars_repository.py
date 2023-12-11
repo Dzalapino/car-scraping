@@ -7,11 +7,10 @@ def update_or_create_total_cars(brand: str, total_used: int, total_new: int):
 
     try:
         # Check if record with the given name already exists
-        existing_record: TotalCars = session.query(TotalCars).filter(TotalCars.brand == brand)
+        existing_record = session.query(TotalCars).filter(TotalCars.brand == brand).first()
 
         if existing_record:
             # Update existing record
-            existing_record.brand = brand
             existing_record.total_used = total_used
             existing_record.total_new = total_new
         else:
