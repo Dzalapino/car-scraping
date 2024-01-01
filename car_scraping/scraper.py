@@ -8,7 +8,6 @@ import car_scraping.utils as utils
 import repository.car_repository as car_repo
 import repository.total_cars_repository as total_cars_repo
 
-
 URL = 'https://www.otomoto.pl/osobowe'
 NEW = 'nowe'
 USED = 'uzywane'
