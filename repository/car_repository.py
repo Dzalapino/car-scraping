@@ -29,3 +29,13 @@ def add_car_if_not_exists(new_car: scrap.Car):
         session.rollback()
     finally:
         session.close()
+
+
+def get_all_cars_by_brand_and_model(brand, model):
+    session = Session()
+    try:
+        return session.query(Car).filter(Car.url_brand == brand, Car.full_name.like(f'%{model}%')).all()
+    except Exception as e:
+        print(f'An error occurred while getting all cars by brand and model:\n    {e}')
+    finally:
+        session.close()

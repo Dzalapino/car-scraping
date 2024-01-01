@@ -30,3 +30,14 @@ def update_or_create_total_cars(brand: str, total_used: int, total_new: int):
         session.rollback()
     finally:
         session.close()
+
+
+def get_all_brands():
+    session = Session()
+
+    try:
+        return [record.brand for record in session.query(TotalCars.brand).all()]
+    except Exception as e:
+        print(f'An error occurred: {e}')
+    finally:
+        session.close()
