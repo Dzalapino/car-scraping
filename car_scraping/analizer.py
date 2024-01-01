@@ -28,7 +28,7 @@ def analise_cars_with_best_price(cars_with_best_price: list):
         print(f'        {car.link}')
 
     print(f'\nTop 5 cars with best price with best year:')
-    cars_with_best_price.sort(key=lambda x: x.year)
+    cars_with_best_price.sort(key=lambda x: x.year, reverse=True)
     for car in cars_with_best_price[:5]:
         print(f'    {car.full_name} - {car.year}, {car.price_pln} PLN')
         print(f'        {car.link}')
