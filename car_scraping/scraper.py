@@ -122,20 +122,20 @@ def save_cars(soup: BeautifulSoup, status=None) -> set[str]:
     :param status: used or new
     """
     # Get the html elements representing single car offers
-    search_results = soup.find('div', class_='ooa-1hab6wx er8sc6m9')
-    car_articles = search_results.find_all('article', class_='ooa-1t80gpj ev7e6t818')
+    search_results = soup.find('div', class_='ooa-r53y0q e1y257vc10')
+    car_articles = search_results.find_all('article', class_='ooa-yca59n e1ajxysh0')
     brands = set()
     try:
         for car_article in car_articles:  # Iterate through car offers elements
             # Get the particular html elements representing needed car properties
             url_element = car_article.find('a', href=True)
             full_name_element = car_article.find('h1')
-            list_element = car_article.find('div', class_='ooa-d3dp2q ev7e6t816')
+            list_element = car_article.find('div', class_='ooa-d3dp2q e1ajxysh2')
             mileage_element = list_element.find('dd', {'data-parameter': 'mileage'})
             fuel_type_element = list_element.find('dd', {'data-parameter': 'fuel_type'})
             gearbox_element = list_element.find('dd', {'data-parameter': 'gearbox'})
             year_element = list_element.find('dd', {'data-parameter': 'year'})
-            price_element = car_article.find('h3', class_='ev7e6t82 ooa-bz4efo er34gjf0')
+            price_element = car_article.find('h3', class_='e1ajxysh16 ooa-1n2paoq er34gjf0')
             car_to_add = Car(
                     link=url_element['href'] if url_element is not None else None,
                     full_name=full_name_element.get_text(strip=True) if full_name_element else None,
