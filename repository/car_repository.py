@@ -31,10 +31,19 @@ def add_car_if_not_exists(new_car: scrap.Car):
         session.close()
 
 
-def get_all_cars_by_brand_and_model(brand, model):
+def get_all_cars_filtered(brand, model, min_year, max_year, min_mileage, max_mileage, fuel_type, gearbox):
     session = Session()
     try:
-        return session.query(Car).filter(Car.url_brand == brand, Car.full_name.like(f'%{model}%')).all()
+        return session.query(Car).filter(
+            Car.url_brand == brand,
+            Car.full_name.like(f'%{model}%'),
+            Car.year >= min_year,
+            Car.year <= max_year,
+            Car.mileage >= min_mileage,
+            Car.mileage <= max_mileage,
+            Car.fuel_type.like(f'%{fuel_type}%'),
+            Car.gearbox.like(f'%{gearbox}%')
+        ).all()
     except Exception as e:
         print(f'An error occurred while getting all cars by brand and model:\n    {e}')
     finally:
