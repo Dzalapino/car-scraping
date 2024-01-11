@@ -10,13 +10,19 @@ def add_car_if_not_exists(new_car: scrap.Car):
     try:
         new_car = Car(
             link=new_car.link,
-            full_name=new_car.full_name,
-            url_brand=new_car.url_brand,
+            brand=new_car.brand,
+            model=new_car.model,
             mileage=new_car.mileage,
+            engine_capacity=new_car.engine_capacity,
+            engine_power=new_car.engine_power,
+            year=new_car.year,
             fuel_type=new_car.fuel_type,
             gearbox=new_car.gearbox,
-            year=new_car.year,
-            status=new_car.status,
+            body_type=new_car.body_type,
+            colour=new_car.colour,
+            type_of_color=new_car.type_of_color,
+            accident_free=new_car.accident_free,
+            state=new_car.state,
             price_pln=new_car.price_pln
         )
         session.add(new_car)

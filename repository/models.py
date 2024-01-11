@@ -9,25 +9,23 @@ class Car(Base):
 
     id = Column(Integer, primary_key=True, autoincrement=True)
     link = Column(String, unique=True)
-    full_name = Column(String)
-    url_brand = Column(String)
+    brand = Column(String)
+    model = Column(String)
     mileage = Column(Integer)
+    engine_capacity = Column(Integer)
+    engine_power = Column(Integer)
+    year = Column(Integer)
     fuel_type = Column(String)
     gearbox = Column(String)
-    year = Column(Integer)
-    status = Column(String)
+    body_type = Column(String)
+    colour = Column(String)
+    type_of_color = Column(String)
+    accident_free = Column(String)
+    state = Column(String)
     price_pln = Column(Integer)
 
     # Define unique constraints
-    __table_args__ = (
-        (UniqueConstraint('full_name', 'mileage', 'fuel_type', 'gearbox', 'year', 'status', 'price_pln'),)
-    )
-
-
-class TotalCars(Base):
-    __tablename__ = 'total_cars'
-
-    id = Column(Integer, primary_key=True, autoincrement=True)
-    brand = Column(String, unique=True)
-    total_used = Column(Integer)
-    total_new = Column(Integer)
+    # __table_args__ = (
+    #     (UniqueConstraint('brand', 'model', 'mileage', 'engine_capacity', 'fuel_type',
+    #                       'gearbox', 'year', 'body_type', 'accident_free', 'state', 'price_pln'),)
+    # )
