@@ -41,12 +41,12 @@ def add_car_if_not_exists(new_car: scrap.Car):
 def get_all_cars_filtered(brand, model, min_year, max_year, min_mileage, max_mileage, fuel_type, gearbox, status):
     session = Session()
     try:
-        model_filters = or_(*[Car.full_name.like(f'%{m}%') for m in model if m])
+        model_filters = or_(*[Car.model.like(f'%{m}%') for m in model if m])
         fuel_type_filters = or_(*[Car.fuel_type.like(f'%{fuel_type}%') for fuel_type in fuel_type if fuel_type])
         gearbox_filters = or_(*[Car.gearbox.like(f'%{gearbox}%') for gearbox in gearbox if gearbox])
 
         return session.query(Car).filter(
-            Car.url_brand == brand,
+            Car.brand == brand,
             model_filters,
             Car.year >= min_year,
             Car.year <= max_year,
@@ -54,7 +54,7 @@ def get_all_cars_filtered(brand, model, min_year, max_year, min_mileage, max_mil
             Car.mileage <= max_mileage,
             fuel_type_filters,
             gearbox_filters,
-            Car.status.like(f'%{status}%')
+            Car.state.like(f'%{status}%')
         ).all()
     except Exception as e:
         print(f'An error occurred while getting all cars by brand and model:\n    {e}')

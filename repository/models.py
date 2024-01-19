@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, UniqueConstraint
+from sqlalchemy import Column, Integer, String
 from sqlalchemy.ext.declarative import declarative_base
 
 Base = declarative_base()
@@ -23,9 +23,3 @@ class Car(Base):
     accident_free = Column(String)
     state = Column(String)
     price_pln = Column(Integer)
-
-    # Define unique constraints
-    # __table_args__ = (
-    #     (UniqueConstraint('brand', 'model', 'mileage', 'engine_capacity', 'fuel_type',
-    #                       'gearbox', 'year', 'body_type', 'accident_free', 'state', 'price_pln'),)
-    # )

@@ -65,7 +65,6 @@ def scrape_n_pages(from_page=Page.otomoto, n_pages=1, start_page=1,
     Main scraping method. It will iterate through pages and scrape cars info and update total number of cars in db
     :param from_page: Page to scrape from
     :param n_pages: Number of pages to scrape
-    :param car_brand: Name of the car brand to scrape. If none given all possible brands will be scrapped
     :param start_page: Number of page from which scrapping will start
     :param min_sleep: Minimum time delay after request
     :param max_sleep: Maximum time delay after request
