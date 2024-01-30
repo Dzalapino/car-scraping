@@ -23,3 +23,4 @@ class Car(Base):
     accident_free = Column(String)
     state = Column(String)
     price_pln = Column(Integer)
+    location = Column(String)

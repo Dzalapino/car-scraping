@@ -5,6 +5,10 @@ from enum import Enum
 from bs4 import BeautifulSoup
 from car_scraping.car import Car
 import repository.car_repository as car_repo
+from selenium import webdriver
+from selenium.webdriver.common.by import By
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
 
 
 class Page(Enum):
@@ -169,45 +173,52 @@ def scrape_car_info(page) -> None:
     :return: None
     """
     try:
-        response = requests.get(page, headers).text
-        soup = BeautifulSoup(response, 'html.parser')
+        chrome_options = webdriver.ChromeOptions()
+        chrome_options.add_argument('--headless')
+        driver = webdriver.Chrome(options=chrome_options)
+        driver.get(page)
         # Check if page is otomoto or olx
         if str(Page.otomoto_url.value) in page:
-            save_cars_otomoto(soup, page)
+            save_cars_otomoto(driver)
         elif str(Page.olx.value) in page:
-            save_cars_olx(soup, page)
+            save_cars_olx(driver)
     except Exception as e:
         print(f'Encountered problem on the page {page}, error message: {e}')
+    finally:
+        driver.quit()
 
 
-def save_cars_otomoto(soup: BeautifulSoup, link: str) -> None:
+def save_cars_otomoto(driver) -> None:
     """
-    Method that saves cars to database with BeautifulSoup object from response for otomoto
-    :param link: Link to car offer
-    :param soup: BeautifulSoup object from response
+    Method that saves cars to the database with Selenium driver for Otomoto
+    :param driver: Selenium WebDriver
     """
     try:
         # Dictionary to store label-value pairs
         car_details = {}
 
-        # Get price element
-        price_element = (soup.find('h3', class_='offer-price__number eqdspoq4 ooa-o7wv9s er34gjf0')
-                         .text.replace(' ', ''))
+        # Wait for price element to be present
+        price_element = driver.find_element(By.XPATH, '//h3[@class="offer-price__number eqdspoq4 ooa-o7wv9s er34gjf0"]')
 
         # Find all div elements with specific class
-        details = soup.find_all("div", class_="ooa-162vy3d e18eslyg3")
+        details = driver.find_elements(By.CSS_SELECTOR, 'div.ooa-162vy3d.e18eslyg3')
+
+        location_element = driver.find_elements(By.XPATH, '//a[@class="edhv9y51 ooa-oxkwx3"]')
+        location_element = [element for element in location_element
+                            if 'Przejdź do' not in element.text and 'Zobacz więcej' not in element.text]
+
         # Filter the details list to keep only the elements that have labels we want to keep
-        details = [detail for detail in details if detail.find("p", class_="e18eslyg4 ooa-12b2ph5").text.strip() in labels_to_find_otomoto]
+        details = [detail for detail in details if detail.find_element(By.CSS_SELECTOR, 'p.e18eslyg4.ooa-12b2ph5').text.strip() in labels_to_find_otomoto]
 
         # Loop through each div to extract label-value pairs
         for detail in details:
-            label = detail.find('p', class_="e18eslyg4 ooa-12b2ph5").text.strip()
+            label = detail.find_element(By.CSS_SELECTOR, 'p.e18eslyg4.ooa-12b2ph5').text.strip()
             if label in [labels_to_find_otomoto[0], labels_to_find_otomoto[1], labels_to_find_otomoto[6],
                          labels_to_find_otomoto[7], labels_to_find_otomoto[8], labels_to_find_otomoto[9],
                          labels_to_find_otomoto[11], labels_to_find_otomoto[12]]:
-                value = detail.find('a', class_="e16lfxpc1 ooa-1ftbcn2").text.strip()
+                value = detail.find_element(By.CSS_SELECTOR, 'a.e16lfxpc1.ooa-1ftbcn2').text.strip()
             else:
-                value = detail.find('p', class_="e16lfxpc0 ooa-1pe3502 er34gjf0").text.strip()
+                value = detail.find_element(By.CSS_SELECTOR, 'p.e16lfxpc0.ooa-1pe3502.er34gjf0').text.strip()
 
             # Check if the label matches the ones we're interested in
             if label in labels_to_find_otomoto:
@@ -215,7 +226,7 @@ def save_cars_otomoto(soup: BeautifulSoup, link: str) -> None:
 
         # Create car object
         car = Car(
-            link=link,
+            link=driver.current_url,
             brand=car_details[labels_to_find_otomoto[0]] if labels_to_find_otomoto[0] in car_details else None,
             model=car_details[labels_to_find_otomoto[1]] if labels_to_find_otomoto[1] in car_details else None,
             mileage=int(car_details[labels_to_find_otomoto[2]].replace('km', '').replace(' ', '')) if labels_to_find_otomoto[2] in car_details else None,
@@ -229,51 +240,71 @@ def save_cars_otomoto(soup: BeautifulSoup, link: str) -> None:
             type_of_color=car_details[labels_to_find_otomoto[10]] if labels_to_find_otomoto[10] in car_details else None,
             accident_free=car_details[labels_to_find_otomoto[11]] if labels_to_find_otomoto[11] in car_details else None,
             state=car_details[labels_to_find_otomoto[12]] if labels_to_find_otomoto[12] in car_details else None,
-            price_pln=int(price_element.replace(' ', '')) if price_element else None
+            price_pln=int(price_element.text.replace(' ', '')) if price_element else None,
+            location=location_element[0].text.strip() if len(location_element) > 0 else ''
         )
 
-        car_repo.add_car_if_not_exists(car)  # Add car to database
+        car_repo.add_car_if_not_exists(car)  # Add car to the database
 
     except Exception as e:
-        print(f'Encountered problem while extracting car data from page {link}, error message: {e}')
+        print(f'Encountered a problem while extracting car data from page {driver.current_url}, error message: {e}')
 
 
-def save_cars_olx(soup: BeautifulSoup, link: str) -> None:
+def save_cars_olx(driver) -> None:
     """
-    Method that saves cars to database with BeautifulSoup object from response for olx
-    :param soup: BeautifulSoup object from response
-    :param link: Link to car offer
+    Method that saves cars to the database with Selenium.
+    :param driver: Selenium WebDriver
     :return: None
     """
     try:
+
         # Dictionary to store label-value pairs
         car_details = {}
 
-        # Find the first 'a' element that stores the value of brand name
-        brand_element = soup.find(
-            lambda tag: tag.name == 'a' and tag.get('href', '').startswith('/motoryzacja/samochody/') and tag.get(
-                'href').count('/') == 4)
+        # Find the first 'a' element that stores the value of brand name (using a more general approach)
+        brand_element = driver.find_elements(
+            By.XPATH,
+            '//a[@class="css-tyi2d1" and starts-with(@href, "/motoryzacja/samochody/")]'
+        )
 
         # Get the price element
-        price_element = soup.find('h3', class_='css-93ez2t')
+        price_element = driver.find_element(By.CSS_SELECTOR, 'h3.css-93ez2t')
+
+        # Wait for location element to be present
+        location_element = WebDriverWait(driver, 5).until(
+            EC.presence_of_element_located((By.XPATH, '//p[@class="css-1cju8pu er34gjf0"]'))
+        )
+
+        # Wait for region elements to be present
+        region_element = WebDriverWait(driver, 5).until(
+            EC.presence_of_all_elements_located((By.XPATH, '//p[@class="css-b5m1rv er34gjf0"]'))
+        )
+        location = ''
+        if location_element:
+            location += location_element.text.strip()
+            if location.endswith(','):
+                location = location[:-1]
+        if region_element:
+            if region_element[-1] != 'Więcej od tego ogłoszeniodawcy':
+                location += ' - ' + region_element[-1].text.strip()
 
         # Find all list items with class "css-1r0si1e"
-        list_items = soup.find_all('li', class_='css-1r0si1e')
+        list_items = driver.find_elements(By.CSS_SELECTOR, 'li.css-1r0si1e')
 
         # Loop through each list item to extract label-value pairs
         for item in list_items:
-            p_element = item.find('p', class_='css-b5m1rv')
+            p_element = item.find_element(By.CSS_SELECTOR, 'p.css-b5m1rv')
 
-            # Check if the p element exists and does not contain a span (it is different and not contain ':')
-            if p_element and not p_element.find('span'):
+            # Check if the p element exists and does not contain a span (it is different and does not contain ':')
+            if p_element and not p_element.find_elements(By.TAG_NAME, 'span'):
                 label = p_element.text.split(': ')[0]
                 value = p_element.text.split(': ')[1]
                 car_details[label] = value
 
         # Create car object
         car = Car(
-            link=link,
-            brand=brand_element.get_text(strip=True) if brand_element else None,
+            link=driver.current_url,
+            brand=brand_element[1].text.strip() if len(brand_element) > 0 else None,
             model=car_details[labels_to_find_olx[0]] if labels_to_find_olx[0] in car_details else None,
             mileage=int(car_details[labels_to_find_olx[1]].replace('km', '').replace(' ', '')) if labels_to_find_olx[1] in car_details else None,
             engine_capacity=int(car_details[labels_to_find_olx[2]].replace('cm³', '').replace(' ', '')) if labels_to_find_olx[2] in car_details else None,
@@ -286,7 +317,8 @@ def save_cars_olx(soup: BeautifulSoup, link: str) -> None:
             type_of_color=None,
             accident_free=car_details[labels_to_find_olx[9]] if labels_to_find_olx[9] in car_details else None,
             state=None,
-            price_pln=int(price_element.text.strip().replace(' ', '').replace('zł', '')) if price_element else None
+            price_pln=int(price_element.text.strip().replace(' ', '').replace('zł', '')) if price_element else None,
+            location=location
         )
 
         # Set the state of the car based on mileage
@@ -295,7 +327,58 @@ def save_cars_olx(soup: BeautifulSoup, link: str) -> None:
         else:
             car.state = 'Używany'
 
-        car_repo.add_car_if_not_exists(car)  # Add car to database
+        car_repo.add_car_if_not_exists(car)  # Add car to the database
 
     except Exception as e:
-        print(f'Encountered problem while extracting car data from page {link}, error message: {e}')
+        print(f'Encountered a problem while extracting car data from the page {driver.current_url}, error message: {e}')
+
+
+def set_missing_locations() -> None:
+    """
+    Method needed after db update (Added location row to Car table)
+    :return: None
+    """
+    cars = car_repo.get_all_cars()
+    chrome_options = webdriver.ChromeOptions()
+    chrome_options.add_argument('--headless')
+    driver = webdriver.Chrome(options=chrome_options)
+    for car in cars[15531:]:
+        try:
+            driver.get(car.link)
+
+            print(f'Updating the location for car with id {car.id}...')
+            # Check if page is otomoto or olx
+            if str(Page.otomoto_url.value) in car.link:
+                location_element = driver.find_elements(By.XPATH, '//a[@class="edhv9y51 ooa-oxkwx3"]')
+                location_element = [element for element in location_element
+                                    if 'Przejdź do' not in element.text and 'Zobacz więcej' not in element.text]
+                car.location = (location_element[0].text.strip() if len(location_element) > 0 else '')
+            elif str(Page.olx.value) in car.link:
+                # Wait for location element to be present
+                location_element = WebDriverWait(driver, 5).until(
+                    EC.presence_of_element_located((By.XPATH, '//p[@class="css-1cju8pu er34gjf0"]'))
+                )
+                # Wait for region elements to be present
+                region_element = WebDriverWait(driver, 5).until(
+                    EC.presence_of_all_elements_located((By.XPATH, '//p[@class="css-b5m1rv er34gjf0"]'))
+                )
+                car.location = ''
+                if location_element:
+                    car.location += location_element.text.strip()
+                    if car.location.endswith(','):
+                        car.location = car.location[:-1]
+                if region_element:
+                    if region_element[-1] != 'Więcej od tego ogłoszeniodawcy':
+                        car.location += ' - ' + region_element[-1].text.strip()
+            else:
+                continue
+            print(car.location)
+            car_repo.update_car(car)
+        except Exception as e:
+            print(f'Encountered problem on the page {car.link}, error message: {e}\n')
+            driver.quit()  # Close the browser
+            driver = webdriver.Chrome(options=chrome_options)
+            continue
+
+        print(f'    Delay after car at link {car.link}...\n')
+        time.sleep(random.uniform(1.0, 1.5))  # Wait some time delay to mimic human behavior

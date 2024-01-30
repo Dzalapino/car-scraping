@@ -18,3 +18,4 @@ class Car:
     accident_free: str
     state: str
     price_pln: int
+    location: str

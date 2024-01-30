@@ -1,5 +1,6 @@
 import pandas as pd
 import matplotlib.pyplot as plt
+import time
 from repository import db_connection
 from repository.models import Car
 
@@ -51,6 +52,7 @@ def analise_data(visualize_data=True) -> None:
 
     if visualize_data:
         # Collective visualization
+        # ------------------------
 
         # Check and visualize the missing data in each column
         plt.figure(figsize=(15, 10))
@@ -60,16 +62,18 @@ def analise_data(visualize_data=True) -> None:
         plt.ylabel('Percentage')
         plt.xticks(rotation=60)
         plt.show()
+        time.sleep(1)
 
         # Check the distribution of the data for numeric columns
         numeric_columns = ['mileage', 'engine_capacity', 'engine_power', 'year', 'price_pln']
         cars_data[numeric_columns].hist(bins=20, figsize=(15, 10))
         plt.suptitle('Distribution of the data for numeric columns for all data')
         plt.show()
+        time.sleep(1)
 
         # Check the distribution of the data for categorical columns
-        categorical_columns = ['brand', 'fuel_type', 'gearbox', 'body_type',
-                               'colour', 'type_of_color', 'accident_free', 'state']
+        categorical_columns = ['brand', 'fuel_type', 'gearbox', 'body_type', 'colour',
+                               'type_of_color', 'accident_free', 'state',]
         for column in categorical_columns:
             plt.figure(figsize=(15, 10))
             cars_data[column].value_counts().plot(kind='bar')
@@ -78,6 +82,7 @@ def analise_data(visualize_data=True) -> None:
             plt.ylabel('Number of cars')
             plt.xticks(rotation=80)
             plt.show()
+            time.sleep(1)
 
         # Show the distribution of the model categorical column and limit the visibility to most popular models
         # (too much models to be visible on one plot)
@@ -89,13 +94,28 @@ def analise_data(visualize_data=True) -> None:
         plt.ylabel('Number of cars')
         plt.xticks(rotation=60)
         plt.show()
+        time.sleep(1)
+
+        # Show the distribution of the location categorical column and limit the visibility to most popular models
+        top_locations_counts = cars_data['location'].value_counts().head(50)
+        # Discard first element because it is a missing value
+        top_locations_counts = top_locations_counts[1:]
+        plt.figure(figsize=(25, 20))
+        top_locations_counts.plot(kind='bar')
+        plt.title('Distribution of the data for location for all data')
+        plt.xlabel('Location')
+        plt.ylabel('Number of cars')
+        plt.show()
+        time.sleep(1)
 
         # Visualization for olx and otomoto separately
+        # --------------------------------------------
 
         # Check the distribution of the data for numeric columns from otomoto
         cars_data[cars_data['link'].str.contains('otomoto')][numeric_columns].hist(bins=20, figsize=(15, 10))
         plt.suptitle('Distribution of the data for numeric columns from otomoto')
         plt.show()
+        time.sleep(1)
 
         # Check the distribution of the data for categorical columns from otomoto
         for column in categorical_columns:
@@ -106,22 +126,37 @@ def analise_data(visualize_data=True) -> None:
             plt.ylabel('Number of cars')
             plt.xticks(rotation=80)
             plt.show()
+            time.sleep(1)
 
         # Show the distribution of the model categorical column and limit the visibility to most popular models
         # (too much models to be visible on one plot)
-        top_models_counts = cars_data[cars_data['link'].str.contains('otomoto')]['model'].value_counts().head(50)
+        top_models_counts_otomoto = cars_data[cars_data['link'].str.contains('otomoto')]['model'].value_counts().head(50)
         plt.figure(figsize=(15, 10))
-        top_models_counts.plot(kind='bar')
+        top_models_counts_otomoto.plot(kind='bar')
         plt.title('Distribution of the data for model from otomoto')
         plt.xlabel('Model')
         plt.ylabel('Number of cars')
         plt.xticks(rotation=60)
         plt.show()
+        time.sleep(1)
+
+        # Show the distribution of the location categorical column and limit the visibility to most popular models
+        top_locations_counts_otomoto = cars_data[cars_data['link'].str.contains('otomoto')]['location'].value_counts().head(50)
+        # Discard first element because it is a missing value
+        top_locations_counts_otomoto = top_locations_counts_otomoto[1:]
+        plt.figure(figsize=(25, 20))
+        top_locations_counts_otomoto.plot(kind='bar')
+        plt.title('Distribution of the data for location from otomoto')
+        plt.xlabel('Location')
+        plt.ylabel('Number of cars')
+        plt.show()
+        time.sleep(1)
 
         # Check the distribution of the data for numeric columns from olx
         cars_data[cars_data['link'].str.contains('olx')][numeric_columns].hist(bins=20, figsize=(15, 10))
         plt.suptitle('Distribution of the data for numeric columns from olx')
         plt.show()
+        time.sleep(1)
 
         # Check the distribution of the data for categorical columns from olx
         categorical_columns.remove('type_of_color')
@@ -133,17 +168,31 @@ def analise_data(visualize_data=True) -> None:
             plt.ylabel('Number of cars')
             plt.xticks(rotation=80)
             plt.show()
+            time.sleep(1)
 
         # Show the distribution of the model categorical column and limit the visibility to most popular models
         # (too much models to be visible on one plot)
-        top_models_counts = cars_data[cars_data['link'].str.contains('olx')]['model'].value_counts().head(50)
+        top_models_counts_olx = cars_data[cars_data['link'].str.contains('olx')]['model'].value_counts().head(50)
         plt.figure(figsize=(15, 10))
-        top_models_counts.plot(kind='bar')
+        top_models_counts_olx.plot(kind='bar')
         plt.title('Distribution of the data for model from olx')
         plt.xlabel('Model')
         plt.ylabel('Number of cars')
         plt.xticks(rotation=60)
         plt.show()
+        time.sleep(1)
+
+        # Show the distribution of the location categorical column and limit the visibility to most popular models
+        top_locations_counts_olx = cars_data[cars_data['link'].str.contains('olx')]['location'].value_counts().head(50)
+        # Discard first element because it is a missing value
+        top_locations_counts_olx = top_locations_counts_otomoto[1:]
+        plt.figure(figsize=(25, 20))
+        top_locations_counts_olx.plot(kind='bar')
+        plt.title('Distribution of the data for locations from olx')
+        plt.xlabel('Location')
+        plt.ylabel('Number of locations')
+        plt.show()
+        time.sleep(1)
 
     # Check how the prices differ between olx and otomoto
     print('\nPrices from olx:')
